@@ -1029,9 +1029,6 @@ SC.ScrollView = SC.View.extend({
       }
       // Otherwise, do a standard adjust.
       else {
-        var containerViewFrame = this.getPath('containerView.frame');
-        var contentViewFrame = contentView.get('frame');
-
         /*
           Behavior for updating the scale.
 
@@ -1050,54 +1047,60 @@ SC.ScrollView = SC.View.extend({
           to display as much of the contentView as possible at this scale (rather than
           displaying a partial margin.)
 
+          We always position the contentView at the top left of the containerView,
+          and the transform origin is also the top left. We simply move the scroll bars
+          around in order to display the right area after the scaling is changed.
+
           Strategy:
             It's easiest to think about this for the case when the content view can
             fit within the container. For bigger content views, we can almost consider
             the margin to be negative.
 
             1. determine the amount of margin that should be available.
-            2. update the horizontal scrollbar, as needed
-            3. scale the contentView to the right size
+            2. scale the contentView
+            3. update the scrollbars, as needed
 
         */
 
-        // Horizontal
+        var newScale = this.get('scale');
+
+        var containerView = this.get('ContainerView');
+
+        // the container view's frame in the the coordinate of the container view's parent view
+        var containerViewFrame = containerView.get('frame');
+
+        // the container view's frame in the the coordinate of the content view's parent view
+        var containerViewFrameInContentView = contentView.convertFrameFromView(containerViewFrame, containerView.get('parentView'));
+
+        // the content view's frame in the the coordinate of the content view's parent view
+        var contentViewFrame = this.getPath('contentView.frame');
+
 
         // 1. determine the amount of margin that should be available.
 
+        // Horizontal
+
         var leftOffset;
+        var horizontalScrollOffset;
 
-        var viewportWidth = this.getPath('containerView.frame.width');
-        var contentViewWidth = this.getPath('contentView.frame.originalWidth') * this.get('scale');
+        var viewportWidth = containerViewFrame.width;
 
-        // Alternative way -- use frames in contentView's coordinates
-        //     Question -- can we just use the clipping frame and and view's originalWidth?
-        // var viewportWidth = this.getPath('contentView.clippingFrame.width');
-        // var contentViewWidth = this.getPath('contentView.frame.originalWidth');
-
-        // 2. update the horizontal scrollbar, as needed
-
-        var newHorizontalScrollOffset;
+        var newContentViewWidth = contentViewFrame.originalWidth * newScale;
 
 
         // If the contentView is able to be fully displayed in the viewport...
-        if (viewportWidth - contentViewWidth >= 0) {
+        if (viewportWidth >= newContentViewWidth) {
           // We'll do this by determining the amount of total amount space available.
           // We can find the "left" of the contentView by dividing that by 2.
 
-          leftOffset = (viewportWidth - contentViewWidth ) / 2;
+          leftOffset = (viewportWidth - newContentViewWidth ) / 2;
 
           // make the left always be an integer (to avoid a weird case
           // where for decimal numbers 0 to 1 is interpreted as a percent)
           leftOffset = Math.round(leftOffset);
 
-
-          // Then we reset the scroll offset to 0
-          newHorizontalScrollOffset = 0;
-
-          // and we need no adjustments
-          this._horizontalScrollbarOffsetAdjustment = 0;
-
+          // if all of the contentView can be shown horizontally, the scroll offset is just 0
+          horizontalScrollOffset = 0;
         }
 
         // if the contentView CANNOT be fully displayed in the viewport...
@@ -1107,129 +1110,89 @@ SC.ScrollView = SC.View.extend({
           // the container's left)
           leftOffset = 0;
 
-          // the scroll offset is basiclaly just how far we've moved from the left edge
+          var oldContentViewWidth = contentViewFrame.width;
 
+          // we need to keep the middle of the scrollbar at the same place
+          var horizontalScrollMidpointPercent = SC.midX(containerViewFrameInContentView) / oldContentViewWidth;
 
-          // we need to calculate the scroll offset in a few steps.
-          // First, calculate it as though the contentView is center-aligned
-
-          newHorizontalScrollOffset = (contentViewWidth - viewportWidth ) / 2;
-
-
-          // Next, figure out if the view was manually scrolled since the last time
-          // we check
-
-          var currentHorizontalScrollOffset = this.get('horizontalScrollOffset');
-
-          if (currentHorizontalScrollOffset != this._prevHorizontalScrollOffset) {
-            // if it changed, update the adjustment value
-            this._horizontalScrollbarOffsetAdjustment += (currentHorizontalScrollOffset - (this._prevHorizontalScrollOffset || 0));
+          // if previously all the horizontal content was shown (but now no longer), then
+          // just center the content.
+          if (viewportWidth >= oldContentViewWidth) {
+            horizontalScrollMidpointPercent = 0.5;
           }
 
-          // apply all the adjustment (which is kind of like all of the manual moves since the last time
-          // the contentView was centered)
+          // simple geometry to convert the percent ratio to an actual offset value.
+          // The scroll offset is where we'll place left side of viewport.
 
-          newHorizontalScrollOffset += this._horizontalScrollbarOffsetAdjustment;
+          var horizontalScrollMidpointOffset = (horizontalScrollMidpointPercent * newContentViewWidth);
+          horizontalScrollOffset = horizontalScrollMidpointOffset - (viewportWidth / 2);
         }
-
-        // update the scrollbar
-        this.set('horizontalScrollOffset', newHorizontalScrollOffset);
-
-        // cache the current scroll offset
-        this._prevHorizontalScrollOffset = newHorizontalScrollOffset;
-
 
 
         // Vertical
 
-        // 1. determine the amount of margin that should be available.
-
         var topOffset;
+        var verticalScrollOffset;
 
-        var viewportHeight = this.getPath('containerView.frame.height');
-        var contentViewHeight = this.getPath('contentView.frame.originalHeight') * this.get('scale');
+        var viewportHeight = containerViewFrame.height;
 
-
-        // Alternative way -- use frames in contentView's coordinates
-        //     Question -- can we just use the clipping frame and and view's originalHeight?
-        // var viewportHeight = this.getPath('contentView.clippingFrame.height');
-        // var contentViewHeight = this.getPath('contentView.frame.originalHeight');
-
-        // 2. update the vertical scrollbar, as needed
-
-        var newVerticalScrollOffset;
+        var newContentViewHeight = contentViewFrame.originalHeight * newScale;
 
 
         // If the contentView is able to be fully displayed in the viewport...
-        if (viewportHeight - contentViewHeight >= 0) {
+        if (viewportHeight >= newContentViewHeight) {
           // We'll do this by determining the amount of total amount space available.
-          // We can find the "left" of the contentView by dividing that by 2.
+          // We can find the "top" of the contentView by dividing that by 2.
 
-          topOffset = (viewportHeight - contentViewHeight ) / 2;
+          topOffset = (viewportHeight - newContentViewHeight ) / 2;
 
-          // make the left always be an integer (to avoid a weird case
+          // make the top always be an integer (to avoid a weird case
           // where for decimal numbers 0 to 1 is interpreted as a percent)
           topOffset = Math.round(topOffset);
 
-
-          // Then we reset the scroll offset to 0
-          newVerticalScrollOffset = 0;
-
-          // and we need no adjustments
-          this._verticalScrollbarOffsetAdjustment = 0;
-
+          // if all of the contentView can be shown vertically, the scroll offset is just 0
+          verticalScrollOffset = 0;
         }
 
         // if the contentView CANNOT be fully displayed in the viewport...
         else {
 
-          // the left offset is just 0 (the contentView's left is just glued to
-          // the container's left)
+          // the top offset is just 0 (the contentView's top is just glued to
+          // the container's top)
           topOffset = 0;
 
-          // the scroll offset is basiclaly just how far we've moved from the left edge
+          var oldContentViewHeight = contentViewFrame.height;
 
+          // we need to keep the middle of the scrollbar at the same place
+          var verticalScrollMidpointPercent = SC.midY(containerViewFrameInContentView) / oldContentViewHeight;
 
-          // we need to calculate the scroll offset in a few steps.
-          // First, calculate it as though the contentView is TOP-aligned
-          // (this is different from horizontal)
-          newVerticalScrollOffset = 0;
-
-          // newVerticalScrollOffset = (contentViewHeight - viewportHeight ) / 2;
-
-
-          // Next, figure out if the view was manually scrolled since the last time
-          // we check
-
-          var currentVerticalScrollOffset = this.get('verticalScrollOffset');
-
-          if (currentVerticalScrollOffset != this._prevVerticalScrollOffset) {
-            // if it changed, update the adjustment value
-            this._verticalScrollbarOffsetAdjustment += (currentVerticalScrollOffset - (this._prevVerticalScrollOffset || 0));
+          // if previously all the vertical content was shown (but now no longer), then
+          // just center the content.
+          if (viewportHeight >= oldContentViewHeight) {
+            verticalScrollMidpointPercent = 0.5;
           }
 
-          // apply all the adjustment (which is kind of like all of the manual moves since the last time
-          // the contentView was centered)
+          // simple geometry to convert the percent ratio to an actual offset value.
+          // The scroll offset is where we'll place top side of viewport.
 
-          newVerticalScrollOffset += this._verticalScrollbarOffsetAdjustment;
+          var verticalScrollMidpointOffset = (verticalScrollMidpointPercent * newContentViewHeight);
+          verticalScrollOffset = verticalScrollMidpointOffset - (viewportHeight / 2);
         }
-
-        // update the scrollbar
-        this.set('verticalScrollOffset', newVerticalScrollOffset);
-
-        // cache the current scroll offset
-        this._prevVerticalScrollOffset = newVerticalScrollOffset;
-
 
         // set the scale
 
         contentView.adjust({
           left: leftOffset,
           top: topOffset,
-          scale: this.get('scale'),
+          scale: newScale,
           transformOriginX: 0,
           transformOriginY: 0
         });
+
+        // update the scrollbars
+
+        this.set('horizontalScrollOffset', horizontalScrollOffset);
+        this.set('verticalScrollOffset', verticalScrollOffset);
       }
     }
   }.observes('scale'),
