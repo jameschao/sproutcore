@@ -2411,6 +2411,8 @@ SC.ScrollView = SC.View.extend({
     // send change notifications since they don't invalidate automatically
     this.notifyPropertyChange('maximumVerticalScrollOffset');
     this.notifyPropertyChange('maximumHorizontalScrollOffset');
+
+    this._scsv_adjustForScale();
   },
 
   /** @private
