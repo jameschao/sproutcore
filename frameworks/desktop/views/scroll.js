@@ -1063,8 +1063,11 @@ SC.ScrollView = SC.View.extend({
         var containerViewFrameInContentView = contentView.convertFrameFromView(containerViewFrame, containerView.get('parentView'));
 
         // the content view's frame in the the coordinate of the content view's parent view
-        var contentViewFrame = this.getPath('contentView.frame');
+        var contentViewFrame = contentView.get('frame');
 
+        if (!contentViewFrame) {
+          return;
+        }
 
         // 1. determine the amount of margin that should be available.
 
