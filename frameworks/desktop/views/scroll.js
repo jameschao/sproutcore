@@ -1040,7 +1040,7 @@ SC.ScrollView = SC.View.extend({
         this._scsv_adjustForScale();
       }
     }
-  },
+  }.observes('scale'),
 
   /** @private Updates the scale and scroll offsets as needed. */
   _scsv_adjustForScale: function() {
@@ -1295,7 +1295,7 @@ SC.ScrollView = SC.View.extend({
     }
 
     this.set('verticalScrollOffset', verticalScrollOffset);
-  }.observes('scale', 'horizontalAlign', 'verticalAlign'),
+  }.observes('horizontalAlign', 'verticalAlign'),
 
   // ------------------------------------------------------------------------
   // Fade Support
