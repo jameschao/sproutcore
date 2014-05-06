@@ -121,6 +121,9 @@ SC.ScrollView = SC.View.extend({
       var minOffset = this.get('minimumHorizontalScrollOffset'),
           maxOffset = this.get('maximumHorizontalScrollOffset');
       this._scroll_horizontalScrollOffset = Math.max(minOffset, Math.min(maxOffset, value));
+
+      this._scroll_horizontalScrollOffsetAtMin = (this._scroll_horizontalScrollOffset === minOffset);
+      this._scroll_horizontalScrollOffsetAtMax = (this._scroll_horizontalScrollOffset === maxOffset);
     }
 
     return this._scroll_horizontalScrollOffset || 0;
@@ -138,6 +141,9 @@ SC.ScrollView = SC.View.extend({
       var minOffset = this.get('minimumVerticalScrollOffset'),
           maxOffset = this.get('maximumVerticalScrollOffset');
       this._scroll_verticalScrollOffset = Math.max(minOffset, Math.min(maxOffset, value));
+
+      this._scroll_verticalScrollOffsetAtMin = (this._scroll_verticalScrollOffset === minOffset);
+      this._scroll_verticalScrollOffsetAtMax = (this._scroll_verticalScrollOffset === maxOffset);
     }
 
     return this._scroll_verticalScrollOffset || 0;
@@ -1146,14 +1152,18 @@ SC.ScrollView = SC.View.extend({
       if (viewportWidth >= oldContentViewWidth) {
         horizontalScrollMidpointPercent = 0.5;
       }
+      else {
+        var oldMinHorizontalOffset = this.minimumScrollOffset(oldContentViewWidth, viewportWidth, this.get('horizontalAlign'));
+        var oldMaxHorizontalOffset = this.maximumScrollOffset(oldContentViewWidth, viewportWidth, this.get('horizontalAlign'));
 
-      // special case - if the offset was manually set to the minimum, then just let that stick
-      else if (this.get('horizontalScrollOffset') === this.get('minimumHorizontalScrollOffset')) {
-        horizontalScrollOffset = 'min';
-      }
-      // special case - if the offset was manually set to the maximum, then just let that stick
-      else if (this.get('horizontalScrollOffset') === this.get('maximumHorizontalScrollOffset')) {
-        horizontalScrollOffset = 'max';
+        // special case - if the offset was manually set to the minimum, then just let that stick
+        if (this._scroll_horizontalScrollOffsetAtMin) {
+          horizontalScrollOffset = 'min';
+        }
+        // special case - if the offset was manually set to the minimum, then just let that stick
+        else if (this._scroll_horizontalScrollOffsetAtMax) {
+          horizontalScrollOffset = 'max';
+        }
       }
 
       // if the horizontal scrolling offset hasn't been set, then compute it based on the midpoint percentage
@@ -1224,14 +1234,18 @@ SC.ScrollView = SC.View.extend({
       if (viewportHeight >= oldContentViewHeight) {
         verticalScrollMidpointPercent = 0.5;
       }
+      else {
+        var oldMinVerticalOffset = this.minimumScrollOffset(oldContentViewHeight, viewportHeight, this.get('verticalAlign'));
+        var oldMaxVerticalOffset = this.maximumScrollOffset(oldContentViewHeight, viewportHeight, this.get('verticalAlign'));
 
-      // special case - if the offset was manually set to the minimum, then just let that stick
-      else if (this.get('verticalScrollOffset') === this.get('minimumVerticalScrollOffset')) {
-        verticalScrollOffset = 'min';
-      }
-      // special case - if the offset was manually set to the maximum, then just let that stick
-      else if (this.get('verticalScrollOffset') === this.get('maximumVerticalScrollOffset')) {
-        verticalScrollOffset = 'max';
+        // special case - if the offset was manually set to the minimum, then just let that stick
+        if (this._scroll_verticalScrollOffsetAtMin) {
+          verticalScrollOffset = 'min';
+        }
+        // special case - if the offset was manually set to the minimum, then just let that stick
+        else if (this._scroll_verticalScrollOffsetAtMax) {
+          verticalScrollOffset = 'max';
+        }
       }
 
       // if the vertical scrolling offset hasn't been set, then compute it based on the midpoint percentage
