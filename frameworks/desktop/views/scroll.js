@@ -124,6 +124,7 @@ SC.ScrollView = SC.View.extend({
 
       this._scroll_horizontalScrollOffsetAtMin = (this._scroll_horizontalScrollOffset === minOffset);
       this._scroll_horizontalScrollOffsetAtMax = (this._scroll_horizontalScrollOffset === maxOffset);
+      this._scroll_horizontalScrollOffsetAtMid = (this._scroll_horizontalScrollOffset === ((minOffset + maxOffset) / 2));
     }
 
     return this._scroll_horizontalScrollOffset || 0;
@@ -144,6 +145,7 @@ SC.ScrollView = SC.View.extend({
 
       this._scroll_verticalScrollOffsetAtMin = (this._scroll_verticalScrollOffset === minOffset);
       this._scroll_verticalScrollOffsetAtMax = (this._scroll_verticalScrollOffset === maxOffset);
+      this._scroll_verticalScrollOffsetAtMid = (this._scroll_verticalScrollOffset === ((minOffset + maxOffset) / 2));
     }
 
     return this._scroll_verticalScrollOffset || 0;
@@ -1143,29 +1145,30 @@ SC.ScrollView = SC.View.extend({
 
       var oldContentViewWidth = contentViewFrame.width;
 
-      // we need to keep the middle of the scroller at the same place - this is what
-      // makes it feel like the scaling is anchored at the middle of the viewable area
-      var horizontalScrollMidpointPercent = SC.midX(containerViewFrameInContentView) / oldContentViewWidth;
-
       // if previously all the horizontal content was shown (but now no longer), then
       // set the midpoint based on the alignment
       if (viewportWidth >= oldContentViewWidth) {
-        horizontalScrollMidpointPercent = 0.5;
+        horizontalScrollOffset = 'mid';
+      }
+      // special case - if the offset was manually set to the middle, then just let that stick
+      else if (this._scroll_horizontalScrollOffsetAtMid) {
+        horizontalScrollOffset = 'mid';
+      }
+      // special case - if the offset was manually set to the minimum, then just let that stick
+      else if (this._scroll_horizontalScrollOffsetAtMin) {
+        horizontalScrollOffset = 'min';
+      }
+      // special case - if the offset was manually set to the minimum, then just let that stick
+      else if (this._scroll_horizontalScrollOffsetAtMax) {
+        horizontalScrollOffset = 'max';
       }
       else {
-        // special case - if the offset was manually set to the minimum, then just let that stick
-        if (this._scroll_horizontalScrollOffsetAtMin) {
-          horizontalScrollOffset = 'min';
-        }
-        // special case - if the offset was manually set to the minimum, then just let that stick
-        else if (this._scroll_horizontalScrollOffsetAtMax) {
-          horizontalScrollOffset = 'max';
-        }
-      }
+        // if the horizontal scrolling offset hasn't been set, then compute it based on the midpoint percentage
 
-      // if the horizontal scrolling offset hasn't been set, then compute it based on the midpoint percentage
+        // we need to keep the middle of the scroller at the same place - this is what
+        // makes it feel like the scaling is anchored at the middle of the viewable area
+        var horizontalScrollMidpointPercent = SC.midX(containerViewFrameInContentView) / oldContentViewWidth;
 
-      if (horizontalScrollOffset === undefined) {
         // simple geometry to convert the percent ratio to an actual offset value.
         // The scroll offset is where we'll place left side of viewport.
 
@@ -1222,29 +1225,30 @@ SC.ScrollView = SC.View.extend({
 
       var oldContentViewHeight = contentViewFrame.height;
 
-      // we need to keep the middle of the scroller at the same place - this is what
-      // makes it feel like the scaling is anchored at the middle of the viewable area
-      var verticalScrollMidpointPercent = SC.midY(containerViewFrameInContentView) / oldContentViewHeight;
-
       // if previously all the vertical content was shown (but now no longer), then
       // set the midpoint based on the alignment
       if (viewportHeight >= oldContentViewHeight) {
-        verticalScrollMidpointPercent = 0.5;
+        verticalScrollOffset = 'mid';
+      }
+      // special case - if the offset was manually set to the middle, then just let that stick
+      else if (this._scroll_verticalScrollOffsetAtMid) {
+        verticalScrollOffset = 'mid';
+      }
+      // special case - if the offset was manually set to the minimum, then just let that stick
+      else if (this._scroll_verticalScrollOffsetAtMin) {
+        verticalScrollOffset = 'min';
+      }
+      // special case - if the offset was manually set to the minimum, then just let that stick
+      else if (this._scroll_verticalScrollOffsetAtMax) {
+        verticalScrollOffset = 'max';
       }
       else {
-        // special case - if the offset was manually set to the minimum, then just let that stick
-        if (this._scroll_verticalScrollOffsetAtMin) {
-          verticalScrollOffset = 'min';
-        }
-        // special case - if the offset was manually set to the minimum, then just let that stick
-        else if (this._scroll_verticalScrollOffsetAtMax) {
-          verticalScrollOffset = 'max';
-        }
-      }
+        // if the vertical scrolling offset hasn't been set, then compute it based on the midpoint percentage
 
-      // if the vertical scrolling offset hasn't been set, then compute it based on the midpoint percentage
+        // we need to keep the middle of the scroller at the same place - this is what
+        // makes it feel like the scaling is anchored at the middle of the viewable area
+        var verticalScrollMidpointPercent = SC.midY(containerViewFrameInContentView) / oldContentViewHeight;
 
-      if (verticalScrollOffset === undefined) {
         // simple geometry to convert the percent ratio to an actual offset value.
         // The scroll offset is where we'll place top side of viewport.
 
@@ -1274,6 +1278,9 @@ SC.ScrollView = SC.View.extend({
     else if (horizontalScrollOffset === 'max') {
       horizontalScrollOffset = this.get('maximumHorizontalScrollOffset');
     }
+    else if (horizontalScrollOffset === 'mid') {
+      horizontalScrollOffset = (this.get('minimumHorizontalScrollOffset') + this.get('maximumHorizontalScrollOffset')) / 2;
+    }
 
     this.set('horizontalScrollOffset', horizontalScrollOffset);
 
@@ -1282,6 +1289,9 @@ SC.ScrollView = SC.View.extend({
     }
     else if (verticalScrollOffset === 'max') {
       verticalScrollOffset = this.get('maximumVerticalScrollOffset');
+    }
+    else if (verticalScrollOffset === 'mid') {
+      verticalScrollOffset = (this.get('minimumVerticalScrollOffset') + this.get('maximumVerticalScrollOffset')) / 2;
     }
 
     this.set('verticalScrollOffset', verticalScrollOffset);
