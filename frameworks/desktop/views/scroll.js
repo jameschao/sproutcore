@@ -1029,235 +1029,254 @@ SC.ScrollView = SC.View.extend({
       }
       // Otherwise, do a standard adjust.
       else {
-        /*
-          Behavior for updating the scale.
-
-          It's a bit hard to think about, so we will discuss this in just one
-          dimension (e.g., horizontal). The same thing can be applied to the other
-          dimension.
-
-          This is modeled after the OS X Preview app.
-
-          The desired behavior here is that if the content view is fully visible
-          in that dimension, then we will center it in the container view.
-
-          If the content view is not fully visible, then we're dealing with a more
-          "general" scaling case, which basically consistents of changing the "zoom"
-          (scale property) and adjusting the "pan" (scroll offset properties).
-
-          We always position the contentView at the top left of the containerView,
-          and the transform origin is always the top left. This way, the scaled frame
-          always expands predicably to the right and to the bottom. We then adjust the
-          scroll offset values in order to give the impression that the anchor was anchored
-          around the center of the viewable area.
-        */
-
-        var newScale = this.get('scale');
-
-        var containerView = this.get('containerView');
-
-        // the container view's frame in the the coordinate of the container view's parent view
-        var containerViewFrame = containerView.get('frame');
-
-        // the container view's frame in the the coordinate of the content view's parent view
-        var containerViewFrameInContentView = contentView.convertFrameFromView(containerViewFrame, containerView.get('parentView'));
-
-        // the content view's frame in the the coordinate of the content view's parent view
-        var contentViewFrame = contentView.get('frame');
-
-        if (!contentViewFrame) {
-          return;
-        }
-
-        // 1. determine the amount of margin that should be available.
-
-        // Horizontal
-
-        var leftOffset;
-        var horizontalScrollOffset;
-
-        var viewportWidth = containerViewFrame.width;
-
-        var newContentViewWidth = contentViewFrame.originalWidth * newScale;
-
-
-        // If the contentView is able to be fully displayed in the viewport...
-        if (viewportWidth >= newContentViewWidth) {
-
-          // where the content view is placed is determined by the horizontal align property
-
-          var horizontalAlign = this.get('horizontalAlign');
-
-          if (horizontalAlign === SC.ALIGN_LEFT) {
-            leftOffset = 0;
-          }
-          else if (horizontalAlign === SC.ALIGN_CENTER) {
-            // We'll do this by determining the amount of total amount space available.
-            // We can find the "left" of the contentView by dividing that by 2.
-            leftOffset = (viewportWidth - newContentViewWidth ) / 2;
-          }
-          else {
-            leftOffset = viewportWidth - newContentViewWidth;
-          }
-
-          // make the left always be an integer (to avoid a weird case
-          // where for decimal numbers 0 to 1 is interpreted as a percent)
-          leftOffset = Math.round(leftOffset);
-
-          // if all of the contentView can be shown horizontally, the scroll offset is just 0
-
-          horizontalScrollOffset = 0;
-        }
-
-        // if the contentView CANNOT be fully displayed in the viewport...
-        else {
-
-          // the left offset is just 0 (the contentView's left is just glued to
-          // the container's left)
-          leftOffset = 0;
-
-          var oldContentViewWidth = contentViewFrame.width;
-
-          // we need to keep the middle of the scroller at the same place - this is what
-          // makes it feel like the scaling is anchored at the middle of the viewable area
-          var horizontalScrollMidpointPercent = SC.midX(containerViewFrameInContentView) / oldContentViewWidth;
-
-          // if previously all the horizontal content was shown (but now no longer), then
-          // set the midpoint based on the alignment
-          if (viewportWidth >= oldContentViewWidth) {
-            horizontalScrollMidpointPercent = 0.5;
-          }
-
-          // else, if the horizontal scrolling offset is set to the minimum, just let it remian the same
-          else if (this.get('horizontalScrollOffset') === this.get('minimumHorizontalScrollOffset')) {
-            horizontalScrollOffset = 'min';
-          }
-          else if (this.get('horizontalScrollOffset') === this.get('maximumHorizontalScrollOffset')) {
-            horizontalScrollOffset = 'max';
-          }
-
-          // if the horizontal scrolling offset hasn't been set, then compute it based on the midpoint percentage
-
-          if (horizontalScrollOffset === undefined) {
-            // simple geometry to convert the percent ratio to an actual offset value.
-            // The scroll offset is where we'll place left side of viewport.
-
-            var horizontalScrollMidpointOffset = (horizontalScrollMidpointPercent * newContentViewWidth);
-            horizontalScrollOffset = horizontalScrollMidpointOffset - (viewportWidth / 2);
-          }
-        }
-
-
-        // Vertical
-
-        var topOffset;
-        var verticalScrollOffset;
-
-        var viewportHeight = containerViewFrame.height;
-
-        var newContentViewHeight = contentViewFrame.originalHeight * newScale;
-
-
-        // If the contentView is able to be fully displayed in the viewport...
-        if (viewportHeight >= newContentViewHeight) {
-
-          // where the content view is placed is determined by the vertical align property
-
-          var verticalAlign = this.get('verticalAlign');
-
-          if (verticalAlign === SC.ALIGN_TOP) {
-            topOffset = 0;
-          }
-          else if (verticalAlign === SC.ALIGN_MIDDLE) {
-            // We'll do this by determining the amount of total amount space available.
-            // We can find the "top" of the contentView by dividing that by 2.
-            topOffset = (viewportHeight - newContentViewHeight ) / 2;
-          }
-          else { // bottom
-            topOffset = viewportHeight - newContentViewHeight;
-          }
-
-          // make the top always be an integer (to avoid a weird case
-          // where for decimal numbers 0 to 1 is interpreted as a percent)
-          topOffset = Math.round(topOffset);
-
-          // if all of the contentView can be shown vertically, the scroll offset is just 0
-
-          verticalScrollOffset = 0;
-        }
-
-        // if the contentView CANNOT be fully displayed in the viewport...
-        else {
-
-          // the top offset is just 0 (the contentView's top is just glued to
-          // the container's top)
-          topOffset = 0;
-
-          var oldContentViewHeight = contentViewFrame.height;
-
-          // we need to keep the middle of the scroller at the same place - this is what
-          // makes it feel like the scaling is anchored at the middle of the viewable area
-          var verticalScrollMidpointPercent = SC.midY(containerViewFrameInContentView) / oldContentViewHeight;
-
-          // if previously all the vertical content was shown (but now no longer), then
-          // set the midpoint based on the alignment
-          if (viewportHeight >= oldContentViewHeight) {
-            verticalScrollMidpointPercent = 0.5;
-          }
-
-          // else, if the vertical scrolling offset is set to the minimum, just let it remian the same
-          else if (this.get('verticalScrollOffset') === this.get('minimumVerticalScrollOffset')) {
-            verticalScrollOffset = 'min';
-          }
-          else if (this.get('verticalScrollOffset') === this.get('maximumVerticalScrollOffset')) {
-            verticalScrollOffset = 'max';
-          }
-
-          // if the vertical scrolling offset hasn't been set, then compute it based on the midpoint percentage
-
-          if (verticalScrollOffset === undefined) {
-            // simple geometry to convert the percent ratio to an actual offset value.
-            // The scroll offset is where we'll place top side of viewport.
-
-            var verticalScrollMidpointOffset = (verticalScrollMidpointPercent * newContentViewHeight);
-            verticalScrollOffset = verticalScrollMidpointOffset - (viewportHeight / 2);
-          }
-        }
-
-        // set the scale
-
-        contentView.adjust({
-          left: leftOffset,
-          top: topOffset,
-          scale: newScale,
-          transformOriginX: 0,
-          transformOriginY: 0
-        });
-
-        // update the scroll offsets
-
-        // we use 'min' and 'max' as temporary constants because these values
-        // need to be determined AFTER the scale has changed.
-
-        if (horizontalScrollOffset === 'min') {
-          horizontalScrollOffset = this.get('minimumHorizontalScrollOffset');
-        }
-        else if (horizontalScrollOffset === 'max') {
-          horizontalScrollOffset = this.get('maximumHorizontalScrollOffset');
-        }
-
-        this.set('horizontalScrollOffset', horizontalScrollOffset);
-
-        if (verticalScrollOffset === 'min') {
-          verticalScrollOffset = this.get('minimumVerticalScrollOffset');
-        }
-        else if (verticalScrollOffset === 'max') {
-          verticalScrollOffset = this.get('maximumVerticalScrollOffset');
-        }
-
-        this.set('verticalScrollOffset', verticalScrollOffset);
+        this._scsv_adjustForScale();
       }
     }
+  },
+
+  /** @private Updates the scale and scroll offsets as needed. */
+  _scsv_adjustForScale: function() {
+    // For now, disable this code during touch scrolling, since the touch specific
+    // code takes that over.
+    if (this.touch) {
+      return;
+    }
+
+    var contentView = this.get('contentView');
+
+    // the content view's frame in the the coordinate of the content view's parent view
+    var contentViewFrame = contentView.get('frame');
+
+    // don't do anything if the content view frame is not ready for whatever reason
+    if (!contentViewFrame) {
+      return;
+    }
+
+
+    /*
+      Behavior for updating the scale.
+
+      It's a bit hard to think about, so we will discuss this in just one
+      dimension (e.g., horizontal). The same thing can be applied to the other
+      dimension.
+
+      This is modeled after the OS X Preview app.
+
+      The desired behavior here is that if the content view is fully visible
+      in that dimension, then we will center it in the container view.
+
+      If the content view is not fully visible, then we're dealing with a more
+      "general" scaling case, which basically consistents of changing the "zoom"
+      (scale property) and adjusting the "pan" (scroll offset properties).
+
+      We always position the contentView at the top left of the containerView,
+      and the transform origin is always the top left. This way, the scaled frame
+      always expands predicably to the right and to the bottom. We then adjust the
+      scroll offset values in order to give the impression that the anchor was anchored
+      around the center of the viewable area.
+    */
+
+    var newScale = this.get('scale');
+
+    var containerView = this.get('containerView');
+
+    // the container view's frame in the the coordinate of the container view's parent view
+    var containerViewFrame = containerView.get('frame');
+
+    // The container view's frame in the the coordinate of the content view's parent view.
+    // This is handy for the scroll offset calculation later.
+    var containerViewFrameInContentView = contentView.convertFrameFromView(containerViewFrame, containerView.get('parentView'));
+
+
+    // 1. determine the amount of margin that should be available.
+
+    // Horizontal
+
+    var leftOffset;
+    var horizontalScrollOffset;
+
+    var viewportWidth = containerViewFrame.width;
+
+    var newContentViewWidth = contentViewFrame.originalWidth * newScale;
+
+
+    // If the contentView is able to be fully displayed in the viewport...
+    if (viewportWidth >= newContentViewWidth) {
+
+      // where the content view is placed is determined by the horizontal align property
+
+      var horizontalAlign = this.get('horizontalAlign');
+
+      if (horizontalAlign === SC.ALIGN_LEFT) {
+        leftOffset = 0;
+      }
+      else if (horizontalAlign === SC.ALIGN_CENTER) {
+        // We'll do this by determining the amount of total amount space available.
+        // We can find the "left" of the contentView by dividing that by 2.
+        leftOffset = (viewportWidth - newContentViewWidth ) / 2;
+      }
+      else {
+        leftOffset = viewportWidth - newContentViewWidth;
+      }
+
+      // make the left always be an integer (to avoid a weird case
+      // where for decimal numbers 0 to 1 is interpreted as a percent)
+      leftOffset = Math.round(leftOffset);
+
+      // if all of the contentView can be shown horizontally, the scroll offset is just 0
+
+      horizontalScrollOffset = 0;
+    }
+
+    // if the contentView CANNOT be fully displayed in the viewport...
+    else {
+
+      // the left offset is just 0 (the contentView's left is just glued to
+      // the container's left)
+      leftOffset = 0;
+
+      var oldContentViewWidth = contentViewFrame.width;
+
+      // we need to keep the middle of the scroller at the same place - this is what
+      // makes it feel like the scaling is anchored at the middle of the viewable area
+      var horizontalScrollMidpointPercent = SC.midX(containerViewFrameInContentView) / oldContentViewWidth;
+
+      // if previously all the horizontal content was shown (but now no longer), then
+      // set the midpoint based on the alignment
+      if (viewportWidth >= oldContentViewWidth) {
+        horizontalScrollMidpointPercent = 0.5;
+      }
+
+      // special case - if the offset was manually set to the minimum, then just let that stick
+      else if (this.get('horizontalScrollOffset') === this.get('minimumHorizontalScrollOffset')) {
+        horizontalScrollOffset = 'min';
+      }
+      // special case - if the offset was manually set to the maximum, then just let that stick
+      else if (this.get('horizontalScrollOffset') === this.get('maximumHorizontalScrollOffset')) {
+        horizontalScrollOffset = 'max';
+      }
+
+      // if the horizontal scrolling offset hasn't been set, then compute it based on the midpoint percentage
+
+      if (horizontalScrollOffset === undefined) {
+        // simple geometry to convert the percent ratio to an actual offset value.
+        // The scroll offset is where we'll place left side of viewport.
+
+        var horizontalScrollMidpointOffset = (horizontalScrollMidpointPercent * newContentViewWidth);
+        horizontalScrollOffset = horizontalScrollMidpointOffset - (viewportWidth / 2);
+      }
+    }
+
+
+    // Vertical
+
+    var topOffset;
+    var verticalScrollOffset;
+
+    var viewportHeight = containerViewFrame.height;
+
+    var newContentViewHeight = contentViewFrame.originalHeight * newScale;
+
+
+    // If the contentView is able to be fully displayed in the viewport...
+    if (viewportHeight >= newContentViewHeight) {
+
+      // where the content view is placed is determined by the vertical align property
+
+      var verticalAlign = this.get('verticalAlign');
+
+      if (verticalAlign === SC.ALIGN_TOP) {
+        topOffset = 0;
+      }
+      else if (verticalAlign === SC.ALIGN_MIDDLE) {
+        // We'll do this by determining the amount of total amount space available.
+        // We can find the "top" of the contentView by dividing that by 2.
+        topOffset = (viewportHeight - newContentViewHeight ) / 2;
+      }
+      else { // bottom
+        topOffset = viewportHeight - newContentViewHeight;
+      }
+
+      // make the top always be an integer (to avoid a weird case
+      // where for decimal numbers 0 to 1 is interpreted as a percent)
+      topOffset = Math.round(topOffset);
+
+      // if all of the contentView can be shown vertically, the scroll offset is just 0
+
+      verticalScrollOffset = 0;
+    }
+
+    // if the contentView CANNOT be fully displayed in the viewport...
+    else {
+
+      // the top offset is just 0 (the contentView's top is just glued to
+      // the container's top)
+      topOffset = 0;
+
+      var oldContentViewHeight = contentViewFrame.height;
+
+      // we need to keep the middle of the scroller at the same place - this is what
+      // makes it feel like the scaling is anchored at the middle of the viewable area
+      var verticalScrollMidpointPercent = SC.midY(containerViewFrameInContentView) / oldContentViewHeight;
+
+      // if previously all the vertical content was shown (but now no longer), then
+      // set the midpoint based on the alignment
+      if (viewportHeight >= oldContentViewHeight) {
+        verticalScrollMidpointPercent = 0.5;
+      }
+
+      // special case - if the offset was manually set to the minimum, then just let that stick
+      else if (this.get('verticalScrollOffset') === this.get('minimumVerticalScrollOffset')) {
+        verticalScrollOffset = 'min';
+      }
+      // special case - if the offset was manually set to the maximum, then just let that stick
+      else if (this.get('verticalScrollOffset') === this.get('maximumVerticalScrollOffset')) {
+        verticalScrollOffset = 'max';
+      }
+
+      // if the vertical scrolling offset hasn't been set, then compute it based on the midpoint percentage
+
+      if (verticalScrollOffset === undefined) {
+        // simple geometry to convert the percent ratio to an actual offset value.
+        // The scroll offset is where we'll place top side of viewport.
+
+        var verticalScrollMidpointOffset = (verticalScrollMidpointPercent * newContentViewHeight);
+        verticalScrollOffset = verticalScrollMidpointOffset - (viewportHeight / 2);
+      }
+    }
+
+    // set the scale
+
+    contentView.adjust({
+      left: leftOffset,
+      top: topOffset,
+      scale: newScale,
+      transformOriginX: 0,
+      transformOriginY: 0
+    });
+
+    // update the scroll offsets
+
+    // we use 'min' and 'max' as temporary constants because these values
+    // need to be determined AFTER the scale has changed.
+
+    if (horizontalScrollOffset === 'min') {
+      horizontalScrollOffset = this.get('minimumHorizontalScrollOffset');
+    }
+    else if (horizontalScrollOffset === 'max') {
+      horizontalScrollOffset = this.get('maximumHorizontalScrollOffset');
+    }
+
+    this.set('horizontalScrollOffset', horizontalScrollOffset);
+
+    if (verticalScrollOffset === 'min') {
+      verticalScrollOffset = this.get('minimumVerticalScrollOffset');
+    }
+    else if (verticalScrollOffset === 'max') {
+      verticalScrollOffset = this.get('maximumVerticalScrollOffset');
+    }
+
+    this.set('verticalScrollOffset', verticalScrollOffset);
   }.observes('scale', 'horizontalAlign', 'verticalAlign'),
 
   // ------------------------------------------------------------------------
