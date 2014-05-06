@@ -1153,9 +1153,6 @@ SC.ScrollView = SC.View.extend({
         horizontalScrollMidpointPercent = 0.5;
       }
       else {
-        var oldMinHorizontalOffset = this.minimumScrollOffset(oldContentViewWidth, viewportWidth, this.get('horizontalAlign'));
-        var oldMaxHorizontalOffset = this.maximumScrollOffset(oldContentViewWidth, viewportWidth, this.get('horizontalAlign'));
-
         // special case - if the offset was manually set to the minimum, then just let that stick
         if (this._scroll_horizontalScrollOffsetAtMin) {
           horizontalScrollOffset = 'min';
@@ -1235,9 +1232,6 @@ SC.ScrollView = SC.View.extend({
         verticalScrollMidpointPercent = 0.5;
       }
       else {
-        var oldMinVerticalOffset = this.minimumScrollOffset(oldContentViewHeight, viewportHeight, this.get('verticalAlign'));
-        var oldMaxVerticalOffset = this.maximumScrollOffset(oldContentViewHeight, viewportHeight, this.get('verticalAlign'));
-
         // special case - if the offset was manually set to the minimum, then just let that stick
         if (this._scroll_verticalScrollOffsetAtMin) {
           verticalScrollOffset = 'min';
