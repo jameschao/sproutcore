@@ -1096,7 +1096,7 @@ SC.ScrollView = SC.View.extend({
       containerViewFrame = containerView.get('frame'),
       // The container view's frame in the the coordinate of the content view's parent view.
       // This is handy for the scroll offset calculation later.
-      containerViewFrameInContentView = contentView.convertFrameFromView(containerViewFrame, containerView.get('parentView'));
+      containerViewFrameInContentView = contentView.convertFrameFromView(containerViewFrame, containerView.get('parentView'), YES);
 
     // Horizontal
     var viewportWidth = containerViewFrame.width,
