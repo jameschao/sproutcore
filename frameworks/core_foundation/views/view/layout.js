@@ -789,8 +789,13 @@ SC.View.reopen(
     // element's scrollTop/scrollLeft property for performance reasons.
     if (pv && pv.isScrollContainer) {
       pv = pv.get('parentView');
-      f.x -= pv.get('horizontalScrollOffset');
-      f.y -= pv.get('verticalScrollOffset');
+
+      if (pv.get('horizontalScrollOffset') > 0) {
+        f.x -= pv.get('horizontalScrollOffset');
+      }
+      if (pv.get('verticalScrollOffset') > 0) {
+        f.y -= pv.get('verticalScrollOffset');
+      }
     }
 
     // make sure the width/height fix min/max...
